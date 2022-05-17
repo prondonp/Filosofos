@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#define MAXHILOS 6
+#define N MAXHILOS 
+#define LEFT (i+N-1)%N
+#define RIGHT (i+1)%N
+#define Pensa 0
+#define Hambre 1
+#define Come 2
+#define Contar
+sem_t w;
+sem_t S[N];
+
+int state[N];
+void test(int i){
+	if((state[i] == Hambre) && (state[LEFT] != Come) && (state[RIGHT] != Come)){
+		state[i] = Come;
+		printf("Soy el filosofo %d  y estoy comiendo\n", i);
+		sem_post(&S[i]);
+	}
+}
+void Tenedor(int i){
+	sem_wait(&w);
+	state[i] = Pensa;
+	printf("Soy el filosofo %d y estoy pensando\n", i);
+	test(LEFT);
+	test(RIGHT);
+	sem_post(&w);
+}
+void T_tenedor(int i){
+	sem_wait(&w);
+	state[i] = Hambre;
+	test(i);
+	sem_post(&w);
+	sem_wait(&S[i]);
+}
+void p(int i){
+}
+void c(int i){
+}
+void filosof(int i){
+	while(1){
+		p(i);
+		T_tenedor(i);
+		c(i);
+		Tenedor(i);
+	}
+}
+int main(){
+	int i;
+	pthread_t hilo[MAXHILOS];
+	
+	sem_init(&w,0,2); 
+	for (i = 0; i < N; ++i)
+		sem_init(&S[i],0,0); 
+
+	for (i = 0; i < MAXHILOS; ++i)
+		pthread_create(&hilo[i],NULL,(void *)&filosof,(void *)i); 
+	
+	for (i = 0; i < MAXHILOS; ++i)
+		pthread_join(hilo[i],NULL); 
+	
+	return 0;
+}
